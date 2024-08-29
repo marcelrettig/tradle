@@ -1020,6 +1020,12 @@ export function getCountryName(language: string, country: Country | undefined) {
   return country?.name;
 }
 
+
+export function getCountryCode(language: string, country: Country | undefined) {
+  return country?.code;
+}
+
+
 export function sanitizeCountryName(countryName: string | undefined): string {
   return countryName
     ? countryName
@@ -1308,9 +1314,19 @@ export function getCountryPrettyName(
 }
 
 export function getCountryByName(countryName: string): Country | undefined {
+  console.log("Language: ", i18n.resolvedLanguage);
   return countries.find(
     (country) =>
       sanitizeCountryName(getCountryName(i18n.resolvedLanguage, country)) ===
+      sanitizeCountryName(countryName)
+  );
+}
+
+export function getCountryByCode(countryName: string): Country | undefined {
+  console.log("Language: ", i18n.resolvedLanguage);
+  return countries.find(
+    (country) =>
+      sanitizeCountryName(getCountryCode(i18n.resolvedLanguage, country)) ===
       sanitizeCountryName(countryName)
   );
 }

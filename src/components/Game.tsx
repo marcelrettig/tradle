@@ -12,6 +12,7 @@ import {
   countryISOMapping,
   getFictionalCountryByName,
   getCountryByName,
+  getCountryByCode,
 } from "../domain/countries";
 import { getCompassDirection } from "../domain/geography";
 import { useGuesses } from "../hooks/useGuesses";
@@ -29,11 +30,32 @@ function getDayString() {
   return DateTime.now().toFormat("yyyy-MM-dd");
 }
 
-const MAX_TRY_COUNT = 6;
+const MAX_TRY_COUNT = 10;
 
 interface GameProps {
   settingsData: SettingsData;
 }
+
+// List of country codes for the game
+const countries = [
+  "af", "al", "dz", "as", "ad", "ao", "ai", "aq", "ag", "ar", "am", "aw", "au", "at", "az",
+  "bs", "bh", "bd", "bb", "by", "be", "bz", "bj", "bm", "bt", "bo", "ba", "bw", "bv", "br",
+  "io", "bn", "bg", "bf", "bi", "kh", "cm", "ca", "cv", "ky", "cf", "td", "cl", "cn", "cx",
+  "cc", "co", "km", "cg", "cd", "ck", "cr", "ci", "hr", "cu", "cy", "cz", "dk", "dj", "dm",
+  "do", "ec", "eg", "sv", "gq", "er", "ee", "et", "fk", "fo", "fj", "fi", "fr", "gf", "pf",
+  "tf", "ga", "gm", "ge", "de", "gh", "gi", "gr", "gl", "gd", "gp", "gu", "gt", "gg", "gn",
+  "gw", "gy", "ht", "hm", "hn", "hk", "hu", "is", "in", "id", "ir", "iq", "ie", "im", "il",
+  "it", "jm", "jp", "je", "jo", "kz", "ke", "ki", "kp", "kr", "kw", "kg", "la", "lv", "lb",
+  "ls", "lr", "ly", "li", "lt", "lu", "mo", "mk", "mg", "mw", "my", "mv", "ml", "mt", "mh",
+  "mq", "mr", "mu", "yt", "mx", "fm", "md", "mc", "mn", "me", "ms", "ma", "mz", "mm", "na",
+  "nr", "np", "nl", "nc", "nz", "ni", "ne", "ng", "nu", "nf", "mp", "no", "om", "pk", "pw",
+  "ps", "pa", "pg", "py", "pe", "ph", "pn", "pl", "pt", "pr", "qa", "re", "ro", "ru", "rw",
+  "bl", "sh", "kn", "lc", "mf", "pm", "vc", "ws", "sm", "st", "sa", "sn", "rs", "sc", "sl",
+  "sg", "sx", "sk", "si", "sb", "so", "za", "gs", "ss", "es", "lk", "sd", "sr", "sj", "sz",
+  "se", "ch", "sy", "tw", "tj", "tz", "th", "tl", "tg", "tk", "to", "tt", "tn", "tr", "tm",
+  "tc", "tv", "ug", "ua", "ae", "gb", "us", "um", "uy", "uz", "vu", "va", "ve", "vn", "vg",
+  "vi", "wf", "eh", "ye", "zm", "zw"
+];
 
 export function Game({ settingsData }: GameProps) {
   const { t, i18n } = useTranslation();
@@ -42,23 +64,11 @@ export function Game({ settingsData }: GameProps) {
 
   const countryInputRef = useRef<HTMLInputElement>(null);
 
-  const countryData = useCountry(`${dayString}`);
-  let country = countryData[0];
-
-  if (isAprilFools) {
-    country = {
-      code: "AJ",
-      latitude: 42.546245,
-      longitude: 1.601554,
-      name: "Land of Oz",
-    };
-  }
-
   const [ipData, setIpData] = useState(null);
   const [won, setWon] = useState(false);
   const [currentGuess, setCurrentGuess] = useState<string>("");
   const [countryValue, setCountryValue] = useState<string>("");
-  const [guesses, addGuess] = useGuesses(dayString);
+  const [guesses, addGuess, resetGuesses] = useGuesses(dayString);
   const [hideImageMode, setHideImageMode] = useMode(
     "hideImageMode",
     dayString,
@@ -70,9 +80,42 @@ export function Game({ settingsData }: GameProps) {
     settingsData.rotationMode
   );
 
+  
+  const [country, setCountry] = useState<any>();
+
+
   const gameEnded =
     guesses.length === MAX_TRY_COUNT ||
     guesses[guesses.length - 1]?.distance === 0;
+
+  function getNewCountry() {
+    const randomIndex = Math.floor(Math.random() * countries.length);
+    const newCountryCode = countries[randomIndex].toUpperCase();
+    console.log("new country code: ", newCountryCode);
+    var newCountryName = getCountryByCode(newCountryCode);
+    console.log("newCountryName: ", newCountryName);
+    return newCountryName;
+  }
+
+  const startNewGame = useCallback(() => {
+    console.log("startNewGameOld called");
+    resetGuesses();
+    console.log("after resetGuesses length: ", guesses.length);
+    guesses.forEach((g) => {
+      console.log("G");
+      console.log(g);
+    });
+    
+    console.log("before set country: ", country)
+    var randomCountry = getNewCountry()
+    console.log("while set country: ", randomCountry)
+    setCountry(randomCountry);
+    console.log("after set country: ", country)
+    setWon(false);
+    window.location.reload();
+
+  }, [resetGuesses]);
+
 
   const handleSubmit = useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
@@ -109,6 +152,14 @@ export function Game({ settingsData }: GameProps) {
     },
     [addGuess, country, currentGuess, t, isAprilFools]
   );
+
+  useEffect(() => {
+    console.log("Initialization of country");
+    if(country == undefined){
+      console.log("Country not defined");
+      setCountry(getNewCountry());
+    }
+  })
 
   useEffect(() => {
     const getIpData = async () => {
@@ -159,12 +210,20 @@ export function Game({ settingsData }: GameProps) {
     }
   }, [guesses, ipData, won, country]);
 
+  useEffect(() => {
+    //if (gameEnded) {
+    //  setTimeout(startNewGame, 2000);
+    //}
+  }, [gameEnded, startNewGame]);
+
   let iframeSrc = "https://oec.world/en/tradle/aprilfools.html";
   let oecLink = "https://oec.world/";
   const country3LetterCode = country?.code
     ? countryISOMapping[country.code].toLowerCase()
     : "";
   if (!isAprilFools) {
+    console.log("Showing regular tradle: ");
+    console.log(country?.oecCode);
     const oecCode = country?.oecCode
       ? country?.oecCode?.toLowerCase()
       : country3LetterCode;
@@ -183,7 +242,6 @@ export function Game({ settingsData }: GameProps) {
           {t("showCountry")}
         </button>
       )}
-      {/* <div className="my-1 mx-auto"> */}
       <h2 className="font-bold text-center">
         Guess which country exports these products!
       </h2>
@@ -257,7 +315,7 @@ export function Game({ settingsData }: GameProps) {
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                  d="M10 6H6a2 2 2 0 00-2-2v10a2 2 2 0 00-2-2v-4M14 4h6m0 0v6m0-6L10 14"
                 />
               </svg>
               {t("showOnGoogleMaps")}
@@ -279,12 +337,6 @@ export function Game({ settingsData }: GameProps) {
                 setCurrentGuess={setCurrentGuess}
                 isAprilFools={isAprilFools}
               />
-              {/* <button
-                className="border-2 uppercase my-0.5 hover:bg-gray-50 active:bg-gray-100 dark:hover:bg-slate-800 dark:active:bg-slate-700"
-                type="submit"
-              >
-                🌍 {t("guess")}
-              </button> */}
               <div className="text-left">
                 <button className="my-2 inline-block justify-end bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded items-center">
                   {isAprilFools ? "🪄" : "🌍"} <span>Guess</span>
@@ -294,6 +346,13 @@ export function Game({ settingsData }: GameProps) {
           </form>
         )}
       </div>
+      <button
+        className="border-2 uppercase my-2 hover:bg-gray-50 active:bg-gray-100 dark:hover:bg-slate-800 dark:active:bg-slate-700"
+        type="button"
+        onClick={startNewGame}
+      >
+        {t("resetGame")}
+      </button>
     </div>
   );
 }

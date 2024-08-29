@@ -96,7 +96,7 @@ function App() {
               <img
                 className="block m-auto"
                 src="images/oec-tradle-logo.png"
-                alt="logo"
+                alt="logotest"
                 width="120"
               />
             </h1>
